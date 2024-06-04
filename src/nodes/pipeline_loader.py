@@ -11,6 +11,8 @@ from ..idm_vton.unet_hacked_garmnet import UNet2DConditionModel as UNet2DConditi
 from ..idm_vton.tryon_pipeline import StableDiffusionXLInpaintPipeline as TryonPipeline
 from comfy.model_management import get_torch_device
 from ...install import WEIGHTS_PATH
+import folder_paths
+
 
 
 DEVICE = get_torch_device()
@@ -37,64 +39,71 @@ class PipelineLoader:
             weight_dtype = torch.float16
         elif weight_dtype == "bfloat16":
             weight_dtype = torch.bfloat16
+            
+        try:
+            model_path = folder_paths.get_folder_paths("idm_vton")[0]
+        except:
+            model_path = WEIGHTS_PATH
+        
+        print(f"[IDM_VTON] model path is: {model_path}")
         
         noise_scheduler = DDPMScheduler.from_pretrained(
-            WEIGHTS_PATH, 
+            model_path, 
             subfolder="scheduler"
         )
         
         vae = AutoencoderKL.from_pretrained(
-            WEIGHTS_PATH,
+            model_path,
             subfolder="vae",
             torch_dtype=weight_dtype
         ).requires_grad_(False).eval().to(DEVICE)
         
         unet = UNet2DConditionModel.from_pretrained(
-            WEIGHTS_PATH,
+            model_path,
             subfolder="unet",
             torch_dtype=weight_dtype
         ).requires_grad_(False).eval().to(DEVICE)
         
         image_encoder = CLIPVisionModelWithProjection.from_pretrained(
-            WEIGHTS_PATH,
+            model_path,
             subfolder="image_encoder",
             torch_dtype=weight_dtype
         ).requires_grad_(False).eval().to(DEVICE)
         
         unet_encoder = UNet2DConditionModel_ref.from_pretrained(
-            WEIGHTS_PATH,
+            model_path,
             subfolder="unet_encoder",
             torch_dtype=weight_dtype
         ).requires_grad_(False).eval().to(DEVICE)
         
         text_encoder_one = CLIPTextModel.from_pretrained(
-            WEIGHTS_PATH,
+            model_path,
             subfolder="text_encoder",
             torch_dtype=weight_dtype
         ).requires_grad_(False).eval().to(DEVICE)
         
         text_encoder_two = CLIPTextModelWithProjection.from_pretrained(
-            WEIGHTS_PATH,
+            model_path,
             subfolder="text_encoder_2",
             torch_dtype=weight_dtype
         ).requires_grad_(False).eval().to(DEVICE)
         
         tokenizer_one = AutoTokenizer.from_pretrained(
-            WEIGHTS_PATH,
+            model_path,
             subfolder="tokenizer",
             revision=None,
             use_fast=False,
         )
         
         tokenizer_two = AutoTokenizer.from_pretrained(
-            WEIGHTS_PATH,
+            model_path,
             subfolder="tokenizer_2",
             revision=None,
             use_fast=False,
         )
 
         pipe = TryonPipeline.from_pretrained(
-            WEIGHTS_PATH,
+            model_path,
             unet=unet,
             vae=vae,
             feature_extractor=CLIPImageProcessor(),
